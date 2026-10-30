@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f4c3a">
+  <meta name="description" content="Trang web Tiếng Việt thực hành với 5 chuyên đề cốt lõi: chính tả, từ Hán Việt, từ đồng nghĩa, từ trái nghĩa, từ đa nghĩa và luyện tập trực quan.">
+  <title>Tiếng Việt thực hành – Cẩm nang và đề cương chuyên sâu</title>
+  
+  <!-- Local styles; the page works without a CDN connection. -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="selection:bg-emerald-200 dark:selection:bg-emerald-900">
+
+  <!-- Desktop & Tablet Header -->
+  <header class="sticky top-0 z-40 bg-white/90 dark:bg-stone-900/90 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 transition-colors">
+    <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo & Title -->
+      <button type="button" class="brand-home flex items-center gap-3 cursor-pointer" aria-label="Về trang chuyên đề" onclick="switchTab('chuyende')">
+        <div class="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center font-serif text-xl font-bold shadow-sm">
+          TV
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-stone-900 dark:text-white leading-tight">
+            Tiếng Việt thực hành
+          </h1>
+          <p class="text-[11px] text-stone-500 font-sans">Đề cương học phần và rèn luyện kỹ năng ngôn ngữ</p>
+        </div>
+      </button>
+
+      <!-- Desktop Navigation Tabs -->
+      <nav class="desktop-nav flex items-center gap-1 sm:gap-2" aria-label="Điều hướng chính">
+        <button data-nav-target="chuyende" aria-current="page" aria-controls="mainContentArea" class="tab-btn active px-3.5 py-2 text-sm font-medium rounded-lg text-stone-700 dark:text-stone-300 hover:text-emerald-800 dark:hover:text-emerald-400">
+          5 Chuyên đề
+        </button>
+        <button data-nav-target="tracuu" aria-controls="mainContentArea" class="tab-btn px-3.5 py-2 text-sm font-medium rounded-lg text-stone-700 dark:text-stone-300 hover:text-emerald-800 dark:hover:text-emerald-400">
+          Tra cứu và soát lỗi
+        </button>
+        <button data-nav-target="luyentap" aria-controls="mainContentArea" class="tab-btn px-3.5 py-2 text-sm font-medium rounded-lg text-stone-700 dark:text-stone-300 hover:text-emerald-800 dark:hover:text-emerald-400">
+          Phòng luyện tập
+        </button>
+        <button data-nav-target="decuong" aria-controls="mainContentArea" class="tab-btn px-3.5 py-2 text-sm font-medium rounded-lg text-stone-700 dark:text-stone-300 hover:text-emerald-800 dark:hover:text-emerald-400">
+          Đề cương học phần
+        </button>
+      </nav>
+
+      <!-- Action items -->
+      <div class="flex items-center gap-2">
+        <!-- Theme Toggle -->
+        <button id="themeToggle" aria-label="Đổi giao diện sáng tối" 
+          class="w-10 h-10 rounded-xl border border-stone-200 dark:border-stone-700 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 transition touch-target">
+          <!-- Icon injected by JS -->
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-5 sm:py-7">
+    <div id="mainContentArea" class="animate-fade-in">
+      <!-- Dynamic views loaded by app.js -->
+    </div>
+  </main>
+
+  <!-- Footer (Desktop view) -->
+  <footer class="mt-auto border-t border-stone-200 dark:border-stone-800 py-6 text-center text-xs text-stone-500 no-print">
+    <div class="max-w-4xl mx-auto px-4">
+      <p class="font-medium text-stone-700 dark:text-stone-300">Đề cương tham khảo • Học phần Tiếng Việt thực hành</p>
+      <p class="mt-1 text-stone-400">Bố cục thích ứng cho điện thoại và máy tính</p>
+    </div>
+  </footer>
+
+  <!-- Mobile Bottom Navigation Bar (Thumb friendly) -->
+  <nav class="bottom-nav" aria-label="Điều hướng trên điện thoại">
+    <button data-nav-target="chuyende" aria-current="page" aria-controls="mainContentArea" class="bottom-nav-item active">
+      <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+      <span>Chuyên đề</span>
+    </button>
+    <button data-nav-target="tracuu" aria-controls="mainContentArea" class="bottom-nav-item">
+      <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <span>Tra cứu</span>
+    </button>
+    <button data-nav-target="luyentap" aria-controls="mainContentArea" class="bottom-nav-item">
+      <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span>Luyện tập</span>
+    </button>
+    <button data-nav-target="decuong" aria-controls="mainContentArea" class="bottom-nav-item">
+      <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      <span>Đề cương</span>
+    </button>
+  </nav>
+
+  <!-- Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
