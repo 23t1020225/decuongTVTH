@@ -543,6 +543,94 @@ button {
   color: #fecdd3 !important;
 }
 
+/* Practice setup and feedback share the existing theme colors. */
+.quiz-muted { color: var(--text-muted); }
+.quiz-setup { border-top: 3px solid var(--primary); }
+.quiz-setup-heading, .quiz-session-heading, .quiz-setup-actions, .quiz-review-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.quiz-controls {
+  display: grid;
+  grid-template-columns: 1.5fr 1.2fr .8fr;
+  gap: 1rem;
+  margin: 1.25rem 0 .75rem;
+}
+.quiz-controls label { font-size: .875rem; font-weight: 600; }
+.quiz-controls select {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin-top: .375rem;
+  padding: .6rem .75rem;
+  border: 1px solid var(--border-color);
+  border-radius: .75rem;
+  background: var(--bg-surface);
+  color: var(--text-main);
+  font-weight: 400;
+}
+.quiz-availability { color: var(--text-muted); margin-bottom: 1rem; }
+.quiz-notice {
+  padding: .75rem 1rem;
+  border-radius: .75rem;
+  background: var(--accent-amber-light);
+  color: var(--accent-amber);
+}
+.quiz-primary, .quiz-secondary {
+  border-radius: .75rem;
+  padding: .7rem 1rem;
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.quiz-primary { background: #0f4c3a; color: white; }
+.quiz-primary:hover { background: #0b382b; }
+.quiz-primary:disabled { opacity: .5; cursor: default; }
+.quiz-secondary { border: 1px solid var(--border-color); background: var(--bg-surface); }
+.quiz-secondary:hover { background: var(--primary-light); }
+.quiz-welcome { text-align: center; padding-top: 2rem; padding-bottom: 2rem; }
+.quiz-welcome-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 1rem;
+  background: var(--primary-light);
+  color: var(--primary);
+  font: bold 1.6rem var(--font-serif);
+}
+.quiz-steps { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; list-style: none; padding: 0; margin: 1.5rem 0 0; }
+.quiz-steps li { display: flex; gap: .5rem; align-items: center; font-size: .8rem; color: var(--text-muted); }
+.quiz-steps li > span { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 1px solid var(--border-color); border-radius: 50%; font-weight: 700; }
+#quizSessionArea, .quiz-question { scroll-margin-top: 84px; }
+.quiz-progress { background: var(--primary-light); }
+.quiz-progress-bar { display: block; width: 100%; height: 7px; border: 0; border-radius: 1rem; overflow: hidden; margin-top: .875rem; background: var(--border-color); accent-color: var(--primary); }
+.quiz-progress-bar::-webkit-progress-bar { background: var(--border-color); }
+.quiz-progress-bar::-webkit-progress-value { background: var(--primary); }
+.quiz-progress-bar::-moz-progress-bar { background: var(--primary); }
+.quiz-review-actions { justify-content: flex-start; }
+.quiz-question[hidden] { display: none; }
+.quiz-question-badges { display: flex; align-items: center; gap: .5rem; }
+.quiz-level { font-size: .75rem; color: var(--text-muted); }
+.quiz-context { margin: 0 0 1rem; padding: 1rem; border-left: 3px solid var(--primary); border-radius: 0 .5rem .5rem 0; background: var(--bg-subtle); font-size: 1rem; line-height: 1.7; }
+.quiz-answer { display: flex; align-items: flex-start; gap: .75rem; padding: .875rem; margin-bottom: .625rem; border-radius: .75rem; font-size: .875rem; background: var(--bg-surface); overflow-wrap: anywhere; }
+.quiz-option-letter { flex-shrink: 0; font-weight: 700; width: 1.25rem; }
+.quiz-answer-note { font-size: .75rem; font-weight: 600; }
+.quiz-feedback { padding: 1rem; margin-top: 1rem; border-radius: .75rem; border: 1px solid; font-size: .875rem; }
+.quiz-feedback-correct { background: var(--primary-light); border-color: var(--primary); }
+.quiz-feedback-incorrect { background: var(--accent-rose-light); border-color: var(--accent-rose); }
+@media (max-width: 639px) {
+  .quiz-controls { grid-template-columns: 1fr 1fr; gap: .75rem; }
+  .quiz-control:first-child { grid-column: 1 / -1; }
+  .quiz-setup-actions { align-items: stretch; flex-direction: column; }
+  .quiz-steps { flex-direction: column; align-items: flex-start; text-align: left; }
+  .quiz-question-badges { flex-wrap: wrap; }
+}
+
 :focus-visible {
   outline: 3px solid var(--border-focus);
   outline-offset: 2px;

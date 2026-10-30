@@ -3,6 +3,10 @@
 let currentTab = 'chuyende';
 let activeTopicIndex = 0;
 let userAnswers = {};
+const quizPool = QuizEngine.expand(QUIZ_BANK);
+let quizSettings = { topic: 'all', level: 'all', count: 10 };
+let quizSession = null;
+let quizOnlyIncorrect = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
@@ -430,109 +434,212 @@ function renderFilteredDictionary(query) {
   `).join('');
 }
 
-// 4. GIAO DIỆN PHÒNG LUYỆN TẬP / TRẮC NGHIỆM
+// 4. PHÒNG LUYỆN TẬP: ngân hàng ngữ cảnh + mẫu hỏi, hoạt động hoàn toàn cục bộ.
+function escapeQuizText(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[char]));
+}
+
 function renderQuizView(container) {
-  const total = APP_DATA.quizQuestions.length;
-  const answeredCount = Object.keys(userAnswers).length;
-
-  let questionsHtml = APP_DATA.quizQuestions.map((q, qIndex) => {
-    const selectedOpt = userAnswers[q.id];
-    const isAnswered = selectedOpt !== undefined;
-
-    const optionsHtml = q.options.map((optText, optIdx) => {
-      let optClass = 'quiz-opt p-3 rounded-xl text-xs sm:text-sm font-medium touch-target mb-2 flex items-start gap-2 bg-stone-50 dark:bg-stone-800/80';
-      
-      if (isAnswered) {
-        optClass += ' answered';
-        if (optIdx === q.correct) {
-          optClass += ' correct';
-        } else if (selectedOpt === optIdx) {
-          optClass += ' incorrect';
-        }
-      }
-
-      return `
-        <button type="button" class="${optClass}" aria-pressed="${selectedOpt === optIdx}" ${isAnswered ? 'disabled' : ''} onclick="handleQuizAnswer(${q.id}, ${optIdx})">
-          <span class="mt-0.5">${optText}</span>
-        </button>
-      `;
-    }).join('');
-
-    let explainBox = '';
-    if (isAnswered) {
-      const isRight = selectedOpt === q.correct;
-      explainBox = `
-        <div class="mt-3 p-3 rounded-lg text-xs sm:text-sm ${isRight ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-300 border border-rose-200 dark:border-rose-800'}">
-          <p class="font-bold mb-1">${isRight ? '✓ Chính xác!' : '✕ Chưa chính xác!'}</p>
-          <p>${q.explain}</p>
-        </div>
-      `;
-    }
-
-    return `
-      <div class="content-card mb-4" id="quiz-card-${q.id}">
-        <div class="flex items-center justify-between mb-2">
-          <span class="badge badge-amber text-xs">${q.topic}</span>
-          <span class="text-xs text-stone-500 font-medium">Câu ${qIndex + 1} / ${total}</span>
-        </div>
-        <h3 class="text-sm sm:text-base font-bold text-stone-900 dark:text-stone-100 mb-3">${q.question}</h3>
-        <div class="options-container">
-          ${optionsHtml}
-        </div>
-        ${explainBox}
-      </div>
-    `;
-  }).join('');
-
-  // Calculate score if completed
-  let scoreBanner = '';
-  if (answeredCount > 0) {
-    let correctCount = 0;
-    APP_DATA.quizQuestions.forEach(q => {
-      if (userAnswers[q.id] === q.correct) correctCount++;
-    });
-    const percentage = Math.round((correctCount / total) * 100);
-
-    scoreBanner = `
-      <div class="p-4 rounded-2xl bg-emerald-800 text-white mb-5 shadow-md flex items-center justify-between">
-        <div>
-          <span class="text-xs uppercase tracking-wider text-emerald-200 font-semibold">Kết quả luyện tập</span>
-          <h3 class="text-2xl font-extrabold mt-0.5">${correctCount} / ${total} câu đúng (${percentage}%)</h3>
-          <p class="text-xs text-emerald-100 mt-1">Đã trả lời ${answeredCount}/${total} câu hỏi</p>
-        </div>
-        <button onclick="resetQuiz()" class="px-3.5 py-2 rounded-xl bg-white text-emerald-900 text-xs font-bold shadow hover:bg-emerald-50 touch-target">
-          Làm lại
-        </button>
-      </div>
-    `;
-  }
-
+  const selectOptions = (items, selected) => items.map(([value, title]) =>
+    `<option value="${value}" ${String(selected) === value ? 'selected' : ''}>${title}</option>`).join('');
   container.innerHTML = `
-    <div class="mb-4">
-      <span class="badge badge-rose mb-1">Thực hành tương tác</span>
-      <h2 class="text-2xl sm:text-3xl font-extrabold text-stone-900 dark:text-white">Luyện tập và kiểm tra kiến thức</h2>
-      <p class="text-xs text-stone-500 dark:text-stone-400 mt-1">Mỗi câu có một phương án đúng; một số lựa chọn sai chính tả được đưa vào có chủ ý để luyện nhận diện lỗi.</p>
-      <p class="text-sm text-stone-600 dark:text-stone-400">Trả lời các câu hỏi để nhận phản hồi và giải thích tức thì</p>
+    <div class="mb-5">
+      <span class="badge badge-rose mb-2">Thực hành tương tác</span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold">Phòng luyện tập</h2>
+      <p class="quiz-muted mt-2">Chọn nội dung muốn ôn, tạo một đề mới và học từ lời giải sau mỗi câu.</p>
     </div>
+    <section class="content-card quiz-setup mb-5" aria-labelledby="quizSetupTitle">
+      <div class="quiz-setup-heading">
+        <div>
+          <h3 id="quizSetupTitle" class="text-lg font-bold">Tạo lượt luyện tập</h3>
+          <p class="quiz-muted text-sm mt-1">${quizPool.length} ngữ cảnh · 5 chủ đề · 3 mức độ</p>
+        </div>
+        <span class="badge badge-green">Mỗi lượt một đề mới</span>
+      </div>
+      <form id="quizSetupForm" onsubmit="startQuiz(event)">
+        <div class="quiz-controls">
+          <div class="quiz-control"><label for="quizTopic">Chủ đề</label>
+            <select id="quizTopic" name="topic" onchange="updateQuizSettings()">
+              ${selectOptions([['all', 'Tổng hợp 5 chủ đề'], ...QUIZ_BANK.topics.map(t => [t.id, t.title])], quizSettings.topic)}
+            </select>
+          </div>
+          <div class="quiz-control"><label for="quizLevel">Mức độ</label>
+            <select id="quizLevel" name="level" onchange="updateQuizSettings()">
+              ${selectOptions([['all', 'Trộn các mức độ'], ...Object.entries(QUIZ_BANK.levels)], quizSettings.level)}
+            </select>
+          </div>
+          <div class="quiz-control"><label for="quizCount">Số câu</label>
+            <select id="quizCount" name="count" onchange="updateQuizSettings()">
+              ${selectOptions(['10', '20', '50'].map(n => [n, `${n} câu`]), quizSettings.count)}
+            </select>
+          </div>
+        </div>
+        <p id="quizAvailability" class="quiz-availability text-sm" role="status" aria-live="polite"></p>
+        <div class="quiz-setup-actions">
+          <button id="quizStartButton" type="submit" class="quiz-primary"></button>
+          <p class="quiz-muted text-xs">Câu hỏi và đáp án được trộn lại. Không lặp câu trong cùng lượt.</p>
+        </div>
+      </form>
+    </section>
+    <div id="quizSessionArea">
+      ${quizSession ? renderQuizSession() : `
+        <div class="quiz-welcome content-card">
+          <span class="quiz-welcome-mark" aria-hidden="true">Aa</span>
+          <h3 class="text-lg font-bold mt-3">Mỗi ngày một chút, dùng từ vững hơn</h3>
+          <p class="quiz-muted text-sm mt-2">Bắt đầu với 10 câu tổng hợp hoặc chọn một chủ đề để luyện kĩ hơn.</p>
+          <ol class="quiz-steps">
+            <li><span>1</span>Chọn chủ đề và mức độ</li>
+            <li><span>2</span>Trả lời từng câu theo ngữ cảnh</li>
+            <li><span>3</span>Đọc lời giải và ôn lại câu sai</li>
+          </ol>
+        </div>`}
+    </div>`;
+  updateQuizAvailability();
+}
 
-    ${scoreBanner}
+window.updateQuizSettings = function() {
+  quizSettings = {
+    topic: document.getElementById('quizTopic').value,
+    level: document.getElementById('quizLevel').value,
+    count: Number(document.getElementById('quizCount').value)
+  };
+  updateQuizAvailability();
+};
 
-    <div>
-      ${questionsHtml}
+function updateQuizAvailability() {
+  const available = QuizEngine.filter(quizPool, quizSettings).length;
+  const count = Math.min(quizSettings.count, available);
+  const message = document.getElementById('quizAvailability');
+  const button = document.getElementById('quizStartButton');
+  if (!message || !button) return;
+  message.classList.toggle('quiz-notice', available < quizSettings.count);
+  message.textContent = available === 0
+    ? 'Chưa có câu hỏi cho bộ lọc này. Hãy chọn chủ đề hoặc mức độ khác.'
+    : available < quizSettings.count
+      ? `Bộ lọc này có ${available} câu. Lượt luyện tập sẽ dùng toàn bộ ${count} câu, không lặp để đủ ${quizSettings.count} câu.`
+      : `Có ${available} câu phù hợp. Đề sẽ chọn ngẫu nhiên ${count} câu.`;
+  button.disabled = count === 0;
+  button.textContent = quizSession ? `Tạo đề mới · ${count} câu` : `Bắt đầu · ${count} câu`;
+}
+
+window.startQuiz = function(event) {
+  if (event) event.preventDefault();
+  updateQuizSettings();
+  const session = QuizEngine.createSession(quizPool, quizSettings);
+  if (!session.questions.length) return;
+  quizSession = session;
+  userAnswers = {};
+  quizOnlyIncorrect = false;
+  document.getElementById('quizSessionArea').innerHTML = renderQuizSession();
+  updateQuizAvailability();
+  document.getElementById('quizSessionTitle').focus({ preventScroll: true });
+  document.getElementById('quizSessionArea').scrollIntoView({ behavior: 'instant', block: 'start' });
+};
+
+function renderQuizSession() {
+  const { settings, questions } = quizSession;
+  const topic = QUIZ_BANK.topics.find(t => t.id === settings.topic)?.title || 'Tổng hợp 5 chủ đề';
+  const level = QUIZ_BANK.levels[settings.level] || 'Trộn các mức độ';
+  return `
+    <section aria-labelledby="quizSessionTitle">
+      <div class="quiz-session-heading mb-3">
+        <h3 id="quizSessionTitle" class="text-lg font-bold" tabindex="-1">Lượt luyện tập hiện tại</h3>
+        <span class="quiz-muted text-sm">${topic} · ${level} · ${questions.length} câu</span>
+      </div>
+      ${questions.length < quizSession.requestedCount ? `<p class="quiz-notice text-sm mb-3">Đang luyện ${questions.length}/${quizSession.requestedCount} câu đã chọn vì bộ lọc chỉ có ${questions.length} câu khác nhau.</p>` : ''}
+      <div id="quizProgressRegion" aria-live="polite" aria-atomic="true">${renderQuizProgress()}</div>
+      <div id="quizReviewControls">${renderQuizReviewControls()}</div>
+      <div id="quizQuestions">${questions.map((q, index) => renderQuizQuestion(q, index, questions.length)).join('')}</div>
+    </section>`;
+}
+
+function renderQuizProgress() {
+  const result = QuizEngine.score(quizSession, userAnswers);
+  const progress = Math.round(result.answered / result.total * 100);
+  return `
+    <div class="quiz-progress content-card mb-4">
+      <div class="quiz-session-heading">
+        <div>
+          <p class="quiz-muted text-xs">${result.completed ? 'Đã hoàn thành lượt luyện tập' : 'Tiến độ luyện tập'}</p>
+          <p class="font-bold text-lg">${result.correct} câu đúng · ${result.incorrect} câu sai</p>
+        </div>
+        <span class="quiz-muted text-sm">Đã trả lời ${result.answered}/${result.total}</span>
+      </div>
+      <progress class="quiz-progress-bar" value="${result.answered}" max="${result.total}" aria-label="Tiến độ trả lời">${progress}%</progress>
+      ${result.completed ? `<p class="quiz-muted text-sm mt-2">Kết quả: <strong>${result.correct}/${result.total} câu đúng (${Math.round(result.correct / result.total * 100)}%)</strong>. ${result.incorrect ? 'Đọc lại lời giải của các câu sai để củng cố kiến thức.' : 'Bạn đã trả lời đúng tất cả các câu!'}</p>` : ''}
+    </div>`;
+}
+
+function renderQuizReviewControls() {
+  const result = QuizEngine.score(quizSession, userAnswers);
+  if (!result.completed) return '';
+  return `<div class="quiz-review-actions mb-4">
+    ${result.incorrect ? `<button id="quizReviewButton" type="button" class="quiz-secondary" aria-pressed="${quizOnlyIncorrect}" onclick="toggleQuizReview()">${quizOnlyIncorrect ? 'Xem tất cả câu hỏi' : `Ôn lại ${result.incorrect} câu sai`}</button>` : ''}
+    <button type="button" class="quiz-secondary" onclick="resetQuiz()">Tạo đề khác cùng lựa chọn</button>
+  </div>`;
+}
+
+function renderQuizQuestion(q, index, total) {
+  const selected = userAnswers[q.id];
+  const answered = selected !== undefined;
+  const right = selected === q.correct;
+  const hidden = quizOnlyIncorrect && right;
+  const options = q.options.map((text, optionIndex) => {
+    const state = answered ? ` answered${optionIndex === q.correct ? ' correct' : selected === optionIndex ? ' incorrect' : ''}` : '';
+    return `<button type="button" class="quiz-opt quiz-answer${state}" aria-pressed="${selected === optionIndex}" ${answered ? 'disabled' : ''} onclick="handleQuizAnswer('${q.id}', ${optionIndex})">
+      <span class="quiz-option-letter" aria-hidden="true">${String.fromCharCode(65 + optionIndex)}</span>
+      <span>${escapeQuizText(text)}${answered && optionIndex === q.correct ? '<span class="quiz-answer-note"> ✓ Đáp án đúng</span>' : answered && selected === optionIndex ? '<span class="quiz-answer-note"> ✕ Bạn đã chọn</span>' : ''}</span>
+    </button>`;
+  }).join('');
+  return `<article class="content-card quiz-question mb-4" id="quiz-card-${q.id}" ${hidden ? 'hidden' : ''} aria-labelledby="quiz-title-${q.id}">
+    <div class="quiz-session-heading mb-3">
+      <div class="quiz-question-badges"><span class="badge badge-amber">${q.topic}</span><span class="quiz-level">${QUIZ_BANK.levels[q.level]}</span></div>
+      <span class="quiz-muted text-xs">Câu ${index + 1}/${total}</span>
     </div>
-  `;
+    <h4 id="quiz-title-${q.id}" class="font-bold text-base mb-3">${escapeQuizText(q.question)}</h4>
+    <blockquote class="quiz-context">${escapeQuizText(q.context)}</blockquote>
+    <div class="options-container">${options}</div>
+    ${answered ? `<div id="quiz-feedback-${q.id}" class="quiz-feedback ${right ? 'quiz-feedback-correct' : 'quiz-feedback-incorrect'}" tabindex="-1">
+      <p class="font-bold mb-1">${right ? '✓ Chính xác!' : '✕ Chưa chính xác.'}</p>
+      ${!right ? `<p class="mb-1">Bạn chọn: <strong>${escapeQuizText(q.options[selected])}</strong></p>` : ''}
+      <p class="mb-1">Đáp án đúng: <strong>${String.fromCharCode(65 + q.correct)}. ${escapeQuizText(q.options[q.correct])}</strong></p>
+      <p>${escapeQuizText(q.explain)}</p>
+    </div>` : ''}
+  </article>`;
 }
 
 window.handleQuizAnswer = function(qId, optIdx) {
-  if (userAnswers[qId] !== undefined) return; // Answered already
+  const index = quizSession ? quizSession.questions.findIndex(q => q.id === qId) : -1;
+  if (index < 0 || userAnswers[qId] !== undefined) return;
+  const question = quizSession.questions[index];
+  if (!Number.isInteger(optIdx) || optIdx < 0 || optIdx >= question.options.length) return;
   userAnswers[qId] = optIdx;
-  renderCurrentTab();
+  // Chỉ cập nhật câu vừa trả lời để giữ nguyên vị trí cuộn trang.
+  document.getElementById(`quiz-card-${qId}`).outerHTML = renderQuizQuestion(question, index, quizSession.questions.length);
+  document.getElementById('quizProgressRegion').innerHTML = renderQuizProgress();
+  document.getElementById('quizReviewControls').innerHTML = renderQuizReviewControls();
+  document.getElementById(`quiz-feedback-${qId}`).focus({ preventScroll: true });
+};
+
+window.toggleQuizReview = function() {
+  quizOnlyIncorrect = !quizOnlyIncorrect;
+  document.getElementById('quizQuestions').innerHTML = quizSession.questions.map((q, i) => renderQuizQuestion(q, i, quizSession.questions.length)).join('');
+  document.getElementById('quizReviewControls').innerHTML = renderQuizReviewControls();
+  document.getElementById('quizReviewButton').focus({ preventScroll: true });
 };
 
 window.resetQuiz = function() {
+  if (!quizSession) return;
+  // Dùng lựa chọn của lượt hiện tại, kể cả khi bộ lọc trên form đã được sửa.
+  quizSettings = { ...quizSession.settings };
+  quizSession = QuizEngine.createSession(quizPool, quizSettings);
   userAnswers = {};
+  quizOnlyIncorrect = false;
   renderCurrentTab();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('quizSessionTitle').focus({ preventScroll: true });
+  document.getElementById('quizSessionArea').scrollIntoView({ behavior: 'instant', block: 'start' });
 };
 
 function setupSearch() {
